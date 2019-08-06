@@ -1,0 +1,7 @@
+version: '3'
+
+services:
+  neuro:
+    build: ./neuro
+    volumes:
+    - ../:/project

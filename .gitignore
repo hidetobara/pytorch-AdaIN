@@ -1,6 +1,15 @@
 *.pth
 *.t7
-output/*
+*.jpg
+*.tar
+
+__pycache__
 .idea
+
+models/vgg_normalised.py
+models/decoder.py
+
+output/*
 experiments/*
 logs/*
+
