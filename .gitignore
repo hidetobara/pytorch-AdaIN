@@ -2,6 +2,7 @@
 *.t7
 *.jpg
 *.tar
+*.out
 
 __pycache__
 .idea
@@ -9,6 +10,7 @@ __pycache__
 models/vgg_normalised.py
 models/decoder.py
 
+input/*
 output/*
 experiments/*
 logs/*

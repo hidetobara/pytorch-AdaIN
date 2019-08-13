@@ -13,7 +13,7 @@ I'm really grateful to the [original implementation](https://github.com/xunhuang
 
 (optional, for training)
 - tqdm
-- TensorboardX
+#- TensorboardX
 
 ## Usage
 

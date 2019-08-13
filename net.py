@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 
 from function import adaptive_instance_normalization as adain
@@ -96,19 +97,18 @@ class Abstracter(nn.Module):
         super(Abstracter, self).__init__()
         self.down = nn.Linear(512*9, 8)
         self.up = nn.Linear(8, 512*9)
-        self.criterion = nn.MSELoss()
 
     def execute(self, input):
-        i = nn.functional.interpolate(input, size=(3,3), mode="bilinear", align_corners=True)
+        i = nn.functional.upsample(input, size=(3,3), mode="bilinear", align_corners=True)
         o = self.up(self.down(i))
-        return nn.functional.interpolate(o, size=input.size()[2:], mode="bilinear", align_corners=True)
+        return nn.functional.upsample(o, size=input.size()[2:], mode="bilinear", align_corners=True)
 
     def forward(self, input):
-        i = nn.functional.interpolate(input, size=(3,3), mode="bilinear", align_corners=True)
-        print("size=", input.size(), i.size())
+        i = nn.functional.upsample(input, size=(3,3), mode="bilinear", align_corners=True)
+        i = torch.autograd.Variable(i.view(-1, 512*9))
         o = self.up(self.down(i))
-        loss = self.criterion(i, o)
-        return loss
+        #print("size=", input.size(), i.size(), o.size())
+        return i, o
 
     def save(self, path):
         torch.save(self.state_dict(), path)

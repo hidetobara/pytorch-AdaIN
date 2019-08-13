@@ -8,7 +8,8 @@ from PIL import Image
 from PIL import ImageFile
 #from tensorboardX import SummaryWriter
 from torchvision import transforms
-#from tqdm import tqdm
+from tqdm import tqdm
+from torch.autograd import Variable
 
 import net
 from sampler import InfiniteSamplerWrapper
@@ -93,6 +94,8 @@ if not os.path.exists(args.log_dir):
 decoder = net.decoder
 vgg = net.vgg
 abstracter = net.Abstracter()
+abstracter.train()
+abstracter.to(device)
 
 vgg.load_state_dict(torch.load(args.vgg))
 vgg = nn.Sequential(*list(vgg.children())[:31])
@@ -117,8 +120,9 @@ style_iter = iter(data.DataLoader(
 
 optimizer = torch.optim.Adam(network.decoder.parameters(), lr=args.lr)
 optimizer_a = torch.optim.Adam(abstracter.parameters())
+criterion_a = nn.MSELoss()
 
-for i in range(args.max_iter):
+for i in tqdm(range(args.max_iter)):
     adjust_learning_rate(optimizer, iteration_count=i)
     content_images = next(content_iter).to(device)
     style_images = next(style_iter).to(device)
@@ -131,7 +135,8 @@ for i in range(args.max_iter):
     loss.backward()
     optimizer.step()
 
-    loss_a = abstracter(style_images)
+    _i, _o = abstracter(Variable(network.encode(style_images)))
+    loss_a = criterion_a(_o, _i)
     optimizer_a.zero_grad()
     loss_a.backward()
     optimizer_a.step()
