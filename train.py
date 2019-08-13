@@ -6,9 +6,9 @@ import torch.nn as nn
 import torch.utils.data as data
 from PIL import Image
 from PIL import ImageFile
-from tensorboardX import SummaryWriter
+#from tensorboardX import SummaryWriter
 from torchvision import transforms
-from tqdm import tqdm
+#from tqdm import tqdm
 
 import net
 from sampler import InfiniteSamplerWrapper
@@ -77,17 +77,22 @@ parser.add_argument('--n_threads', type=int, default=16)
 parser.add_argument('--save_model_interval', type=int, default=10000)
 args = parser.parse_args()
 
-device = torch.device('cuda')
+if torch.cuda.is_available():
+    device = 'cuda'
+else:
+    device = 'cpu'
+    print("ATTENSION: CPU mode.")
 
 if not os.path.exists(args.save_dir):
     os.mkdir(args.save_dir)
 
 if not os.path.exists(args.log_dir):
     os.mkdir(args.log_dir)
-writer = SummaryWriter(log_dir=args.log_dir)
+#writer = SummaryWriter(log_dir=args.log_dir)
 
 decoder = net.decoder
 vgg = net.vgg
+abstracter = net.Abstracter()
 
 vgg.load_state_dict(torch.load(args.vgg))
 vgg = nn.Sequential(*list(vgg.children())[:31])
@@ -111,8 +116,9 @@ style_iter = iter(data.DataLoader(
     num_workers=args.n_threads))
 
 optimizer = torch.optim.Adam(network.decoder.parameters(), lr=args.lr)
+optimizer_a = torch.optim.Adam(abstracter.parameters())
 
-for i in tqdm(range(args.max_iter)):
+for i in range(args.max_iter):
     adjust_learning_rate(optimizer, iteration_count=i)
     content_images = next(content_iter).to(device)
     style_images = next(style_iter).to(device)
@@ -125,14 +131,19 @@ for i in tqdm(range(args.max_iter)):
     loss.backward()
     optimizer.step()
 
-    writer.add_scalar('loss_content', loss_c.item(), i + 1)
-    writer.add_scalar('loss_style', loss_s.item(), i + 1)
+    loss_a = abstracter(style_images)
+    optimizer_a.zero_grad()
+    loss_a.backward()
+    optimizer_a.step()
+
+    #writer.add_scalar('loss_content', loss_c.item(), i + 1)
+    #writer.add_scalar('loss_style', loss_s.item(), i + 1)
 
     if (i + 1) % args.save_model_interval == 0 or (i + 1) == args.max_iter:
         state_dict = net.decoder.state_dict()
         for key in state_dict.keys():
             state_dict[key] = state_dict[key].to(torch.device('cpu'))
-        torch.save(state_dict,
-                   '{:s}/decoder_iter_{:d}.pth.tar'.format(args.save_dir,
-                                                           i + 1))
-writer.close()
+        torch.save(state_dict, '{:s}/decoder_iter_{:d}.pth.tar'.format(args.save_dir, i + 1))
+        abstracter.save('{:s}/abstracter.pth.tar'.format(args.save_dir))
+        
+#writer.close()

@@ -91,6 +91,29 @@ vgg = nn.Sequential(
     nn.ReLU()  # relu5-4
 )
 
+class Abstracter(nn.Module):
+    def __init__(self):
+        super(Abstracter, self).__init__()
+        self.down = nn.Linear(512*9, 8)
+        self.up = nn.Linear(8, 512*9)
+        self.criterion = nn.MSELoss()
+
+    def execute(self, input):
+        i = nn.functional.interpolate(input, size=(3,3), mode="bilinear", align_corners=True)
+        o = self.up(self.down(i))
+        return nn.functional.interpolate(o, size=input.size()[2:], mode="bilinear", align_corners=True)
+
+    def forward(self, input):
+        i = nn.functional.interpolate(input, size=(3,3), mode="bilinear", align_corners=True)
+        print("size=", input.size(), i.size())
+        o = self.up(self.down(i))
+        loss = self.criterion(i, o)
+        return loss
+
+    def save(self, path):
+        torch.save(self.state_dict(), path)
+    def load(self, path):
+        self.load_state_dict(torch.load(path))
 
 class Net(nn.Module):
     def __init__(self, encoder, decoder):
