@@ -97,6 +97,7 @@ class Abstracter(nn.Module):
         super(Abstracter, self).__init__()
         self.down = nn.Linear(512*9, 8)
         self.up = nn.Linear(8, 512*9)
+        self.dropout = nn.Dropout(0.5)
 
     def execute(self, input):
         i = nn.functional.upsample(input, size=(3,3), mode="bilinear", align_corners=True)
@@ -105,7 +106,9 @@ class Abstracter(nn.Module):
 
     def forward(self, input):
         i = nn.functional.upsample(input, size=(3,3), mode="bilinear", align_corners=True)
-        i = torch.autograd.Variable(i.view(-1, 512*9))
+        i = i.view(-1, 512*9)
+        if self.training:
+            i = self.dropout(i)
         o = self.up(self.down(i))
         #print("size=", input.size(), i.size(), o.size())
         return i, o
