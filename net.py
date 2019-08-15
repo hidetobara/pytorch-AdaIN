@@ -114,7 +114,10 @@ class Abstracter(nn.Module):
         return i, o
 
     def save(self, path):
-        torch.save(self.state_dict(), path)
+        state = self.state_dict()
+        for key in state.keys():
+            state[key] = state[key].to('cpu')
+        torch.save(self.state, path)
     def load(self, path):
         self.load_state_dict(torch.load(path))
 

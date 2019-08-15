@@ -24,11 +24,12 @@ def test_transform(size, crop):
     return transform
 
 
-def style_transfer(vgg, decoder, content, style, alpha=1.0,
+def style_transfer(vgg, decoder, abs, content, style, alpha=1.0,
                    interpolation_weights=None):
     assert (0.0 <= alpha <= 1.0)
     content_f = vgg(content)
-    style_f = vgg(style)
+    #style_f = vgg(style)
+    style_f = abs.execute(content_f) # Attension content -> style
     if interpolation_weights:
         _, C, H, W = content_f.size()
         feat = torch.FloatTensor(1, C, H, W).zero_().to(device)
@@ -117,16 +118,20 @@ if not os.path.exists(args.output):
 
 decoder = net.decoder
 vgg = net.vgg
+abstracter = net.Abstracter()
 
 decoder.eval()
 vgg.eval()
+abstracter.eval()
 
 decoder.load_state_dict(torch.load(args.decoder))
 vgg.load_state_dict(torch.load(args.vgg))
 vgg = nn.Sequential(*list(vgg.children())[:31])
+abstracter.load("./models/abstracter.pth.tar")
 
 vgg.to(device)
 decoder.to(device)
+abstracter.to(device)
 
 content_tf = test_transform(args.content_size, args.crop)
 style_tf = test_transform(args.style_size, args.crop)
