@@ -95,21 +95,24 @@ vgg = nn.Sequential(
 class Abstracter(nn.Module):
     def __init__(self):
         super(Abstracter, self).__init__()
-        self.down = nn.Linear(512*9, 8)
-        self.up = nn.Linear(8, 512*9)
+        self.down = nn.Linear(512*25, 16)
+        self.up = nn.Linear(16, 512*25)
+        self.relu = nn.ReLU()
         self.dropout = nn.Dropout(0.5)
 
     def execute(self, input):
-        i = nn.functional.upsample(input, size=(3,3), mode="bilinear", align_corners=True)
-        o = self.up(self.down(i))
+        i = nn.functional.upsample(input, size=(5,5), mode="bilinear", align_corners=True)
+        i = i.view(-1, 512*25)
+        o = self.relu(self.up(self.down(i)))
+        o = o.view(-1, 512, 5, 5)
         return nn.functional.upsample(o, size=input.size()[2:], mode="bilinear", align_corners=True)
 
     def forward(self, input):
-        i = nn.functional.upsample(input, size=(3,3), mode="bilinear", align_corners=True)
-        i = i.view(-1, 512*9)
+        i = nn.functional.upsample(input, size=(5,5), mode="bilinear", align_corners=True)
+        i = i.view(-1, 512*25)
         if self.training:
             i = self.dropout(i)
-        o = self.up(self.down(i))
+        o = self.relu(self.up(self.down(i)))
         #print("size=", input.size(), i.size(), o.size())
         return i, o
 

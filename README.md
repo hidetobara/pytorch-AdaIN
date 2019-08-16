@@ -52,6 +52,7 @@ Some other options:
 * `--alpha`: Adjust the degree of stylization. It should be a value between 0.0 and 1.0 (default).
 * `--preserve_color`: Preserve the color of the content image.
 
+# python3 test.py --content input/content/lenna.jpg --style input/klmt/eugenia.jpg --decoder models/decoder_klmt_tmp.pth.tar
 
 ### Train
 Use `--content_dir` and `--style_dir` to provide the respective directory to the content and style images.

@@ -9,7 +9,7 @@ from torchvision import transforms
 from torchvision.utils import save_image
 
 import net
-from function import adaptive_instance_normalization
+from function import adaptive_instance_normalization, single_adaptive_instance_normalization
 from function import coral
 
 
@@ -28,17 +28,17 @@ def style_transfer(vgg, decoder, abs, content, style, alpha=1.0,
                    interpolation_weights=None):
     assert (0.0 <= alpha <= 1.0)
     content_f = vgg(content)
-    #style_f = vgg(style)
-    style_f = abs.execute(content_f) # Attension content -> style
+    #style_gen = vgg(style)
+    style_gen = abs.execute(content_f) # Attension content -> style
     if interpolation_weights:
         _, C, H, W = content_f.size()
         feat = torch.FloatTensor(1, C, H, W).zero_().to(device)
-        base_feat = adaptive_instance_normalization(content_f, style_f)
+        base_feat = adaptive_instance_normalization(content_f, style_gen)
         for i, w in enumerate(interpolation_weights):
             feat = feat + w * base_feat[i:i + 1]
         content_f = content_f[0:1]
     else:
-        feat = adaptive_instance_normalization(content_f, style_f)
+        feat = single_adaptive_instance_normalization(content_f, style_gen)
     feat = feat * alpha + content_f * (1 - alpha)
     return decoder(feat)
 
@@ -160,8 +160,7 @@ for content_path in content_paths:
             style = style.to(device).unsqueeze(0)
             content = content.to(device).unsqueeze(0)
             with torch.no_grad():
-                output = style_transfer(vgg, decoder, content, style,
-                                        args.alpha)
+                output = style_transfer(vgg, decoder, abstracter, content, style, args.alpha)
             output = output.cpu()
 
             output_name = '{:s}/{:s}_stylized_{:s}{:s}'.format(
