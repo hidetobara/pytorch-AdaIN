@@ -93,23 +93,27 @@ vgg = nn.Sequential(
 )
 
 class Abstracter(nn.Module):
-    def __init__(self):
+    def __init__(self, size=5):
         super(Abstracter, self).__init__()
-        self.down = nn.Linear(512*25, 16)
-        self.up = nn.Linear(16, 512*25)
+        self.size = size
+        self.down = nn.Linear(512*(self.size**2), 8)
+        self.up = nn.Linear(8, 512*(self.size**2))
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(0.5)
 
     def execute(self, input):
-        i = nn.functional.upsample(input, size=(5,5), mode="bilinear", align_corners=True)
-        i = i.view(-1, 512*25)
+        i = nn.functional.upsample(input, size=(self.size,self.size), mode="bilinear", align_corners=True)
+        i = i.view(-1, 512*(self.size**2))
         o = self.relu(self.up(self.down(i)))
-        o = o.view(-1, 512, 5, 5)
+        mean = o.mean(dim=1)
+        std = o.var(dim=1).sqrt() + 0.001
+        o = (o - mean) / std + mean
+        o = o.view(-1, 512, self.size, self.size)
         return nn.functional.upsample(o, size=input.size()[2:], mode="bilinear", align_corners=True)
 
     def forward(self, input):
-        i = nn.functional.upsample(input, size=(5,5), mode="bilinear", align_corners=True)
-        i = i.view(-1, 512*25)
+        i = nn.functional.upsample(input, size=(self.size,self.size), mode="bilinear", align_corners=True)
+        i = i.view(-1, 512*(self.size**2))
         if self.training:
             i = self.dropout(i)
         o = self.relu(self.up(self.down(i)))
