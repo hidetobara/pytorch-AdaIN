@@ -18,10 +18,22 @@ def adaptive_instance_normalization(content_feat, style_feat):
     style_mean, style_std = calc_mean_std(style_feat)
     content_mean, content_std = calc_mean_std(content_feat)
 
-    normalized_feat = (content_feat - content_mean.expand(
-        size)) / content_std.expand(size)
+    normalized_feat = (content_feat - content_mean.expand(size)) / content_std.expand(size)
     return normalized_feat * style_std.expand(size) + style_mean.expand(size)
 
+def single_adaptive_instance_normalization(content_feat, style_feat):
+    assert (content_feat.size()[:2] == style_feat.size()[:2])
+    size = content_feat.size()
+    #style_mean, style_std = calc_mean_std(style_feat)
+    #normalized_style = (style_feat - style_mean.expand(size)) / style_std.expand(size)
+    content_mean, content_std = calc_mean_std(content_feat)
+    normalized_content = (content_feat - content_mean.expand(size)) / content_std.expand(size)
+
+    return normalized_content * style_feat + content_mean
+    #return normalized_content * style_std.expand(size) + style_mean.expand(size)
+    #return style_feat
+    #return normalized_content * content_std.expand(size)
+    #return normalized_content * content_std.expand(size) + style_feat
 
 def _calc_feat_flatten_mean_std(feat):
     # takes 3D feat (C, H, W), return mean and std of array within channels
