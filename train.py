@@ -93,7 +93,7 @@ if not os.path.exists(args.log_dir):
 
 decoder = net.decoder
 vgg = net.vgg
-abstracter = net.Abstracter()
+abstracter = net.Abstracter2()
 abstracter.train()
 abstracter.to(device)
 

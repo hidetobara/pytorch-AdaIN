@@ -128,6 +128,36 @@ class Abstracter(nn.Module):
     def load(self, path):
         self.load_state_dict(torch.load(path))
 
+class Abstracter2(nn.Module):
+    def __init__(self):
+        super(Abstracter2, self).__init__()
+        self.down = nn.Sequential(
+            nn.ReflectionPad2d((2, 2, 2, 2)),
+            nn.Conv2d(512, 16, (5, 5)),
+            nn.ReLU(),
+            nn.MaxPool2d((8, 8), (8, 8), (0, 0), ceil_mode=True))
+        self.up = nn.Sequential(
+            nn.Dropout(0.5),
+            nn.Upsample(scale_factor=8, mode='bilinear', align_corners=True),
+            nn.ReflectionPad2d((2, 2, 2, 2)),
+            nn.Conv2d(16, 512, (5, 5)),
+            nn.ReLU())
+
+    def execute(self, input):
+        o = self.up(self.down(input))
+        return o
+    def forward(self, input):
+        o = self.up(self.down(input))
+        return input, o
+
+    def save(self, path):
+        state = self.state_dict()
+        for key in state.keys():
+            state[key] = state[key].to('cpu')
+        torch.save(state, path)
+    def load(self, path):
+        self.load_state_dict(torch.load(path))
+
 class Net(nn.Module):
     def __init__(self, encoder, decoder):
         super(Net, self).__init__()
