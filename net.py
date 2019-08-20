@@ -93,7 +93,7 @@ vgg = nn.Sequential(
 )
 
 class Abstracter(nn.Module):
-    def __init__(self, size=5):
+    def __init__(self, size=3):
         super(Abstracter, self).__init__()
         self.size = size
         self.down = nn.Linear(512*(self.size**2), 8)
@@ -144,10 +144,23 @@ class Abstracter2(nn.Module):
             nn.ReLU())
 
     def execute(self, input):
-        o = self.up(self.down(input))
-        return o
+        size = input.size()[2:]
+        i = nn.functional.upsample(i, size=(64,64), mode="bilinear", align_corners=True)
+        o = self.up(self.down(i))
+        o = nn.functional.upsample(o, size=size, mode="bilinear", align_corners=True)
+        mean = o.view(512, -1).mean(dim=1)
+        var = o.view(512, -1).var(dim=1) + 0.01
+        std = var.sqrt()
+        print("exe=", std)
+        mean = mean.view(512, 1).expand( (512, size[0]*size[1]) )
+        std = std.view(512, 1).expand( (512, size[0]*size[1]) )
+        tmp = (o.view(512, -1) - mean) / std
+        return tmp.view(1, 512, size[0], size[1])
     def forward(self, input):
-        o = self.up(self.down(input))
+        size = input.size()[2:]
+        i = nn.functional.upsample(o, size=(64,64), mode="bilinear", align_corners=True)
+        o = self.up(self.down(i))
+        o = nn.functional.upsample(o, size=size, mode="bilinear", align_corners=True)
         return input, o
 
     def save(self, path):

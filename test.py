@@ -118,7 +118,7 @@ if not os.path.exists(args.output):
 
 decoder = net.decoder
 vgg = net.vgg
-abstracter = net.Abstracter()
+abstracter = net.Abstracter2()
 
 decoder.eval()
 vgg.eval()
