@@ -91,12 +91,17 @@ if not os.path.exists(args.log_dir):
     os.mkdir(args.log_dir)
 #writer = SummaryWriter(log_dir=args.log_dir)
 
+is_decoder_updating = False
+
 decoder = net.decoder
 vgg = net.vgg
 abstracter = net.Abstracter2()
 abstracter.train()
 abstracter.to(device)
 
+if not is_decoder_updating:
+    decoder.load_state_dict(torch.load('experiments/decoder.pth.tar'))
+    print("decoder is loaded.")
 vgg.load_state_dict(torch.load(args.vgg))
 vgg = nn.Sequential(*list(vgg.children())[:31])
 network = net.Net(vgg, decoder)
@@ -126,15 +131,18 @@ for i in tqdm(range(args.max_iter)):
     adjust_learning_rate(optimizer, iteration_count=i)
     content_images = next(content_iter).to(device)
     style_images = next(style_iter).to(device)
-    loss_c, loss_s = network(content_images, style_images)
-    loss_c = args.content_weight * loss_c
-    loss_s = args.style_weight * loss_s
-    loss = loss_c + loss_s
 
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
+    # decoder
+    if is_decoder_updating:
+        loss_c, loss_s = network(content_images, style_images)
+        loss_c = args.content_weight * loss_c
+        loss_s = args.style_weight * loss_s
+        loss = loss_c + loss_s
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
+    # abstracter
     _i, _o = abstracter(Variable(network.encode(style_images)))
     loss_a = criterion_a(_o, _i)
     optimizer_a.zero_grad()
@@ -144,11 +152,13 @@ for i in tqdm(range(args.max_iter)):
     #writer.add_scalar('loss_content', loss_c.item(), i + 1)
     #writer.add_scalar('loss_style', loss_s.item(), i + 1)
 
+    # saving
     if (i + 1) % args.save_model_interval == 0 or (i + 1) == args.max_iter:
-        state_dict = net.decoder.state_dict()
-        for key in state_dict.keys():
-            state_dict[key] = state_dict[key].to(torch.device('cpu'))
-        torch.save(state_dict, '{:s}/decoder_iter_{:d}.pth.tar'.format(args.save_dir, i + 1))
+        if is_decoder_updating:
+            state_dict = net.decoder.state_dict()
+            for key in state_dict.keys():
+                state_dict[key] = state_dict[key].to(torch.device('cpu'))
+            torch.save(state_dict, '{:s}/decoder_iter_{:d}.pth.tar'.format(args.save_dir, i + 1))
         abstracter.save('{:s}/abstracter.pth.tar'.format(args.save_dir))
         
 #writer.close()
