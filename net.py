@@ -132,21 +132,22 @@ class Abstracter2(nn.Module):
     def __init__(self):
         super(Abstracter2, self).__init__()
         self.down = nn.Sequential(
-            nn.ReflectionPad2d((2, 2, 2, 2)),
-            nn.Conv2d(512, 16, (5, 5)),
-            nn.ReLU(),
-            nn.MaxPool2d((4, 4), (4, 4), (0, 0), ceil_mode=True))
+            nn.ReflectionPad2d((1, 1, 1, 1)),
+            nn.Conv2d(512, 16, (3, 3)),
+            nn.LeakyReLU(),
+            nn.MaxPool2d((2, 2), (2, 2), (0, 0), ceil_mode=True))
         self.up = nn.Sequential(
             #nn.Dropout(0.5),
-            nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True),
-            nn.ReflectionPad2d((2, 2, 2, 2)),
-            nn.Conv2d(16, 512, (5, 5)),
+            nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
+            nn.ReflectionPad2d((1, 1, 1, 1)),
+            nn.Conv2d(16, 512, (3, 3)),
             nn.ReLU())
 
     def execute(self, input):
         size = input.size()[2:]
-        i = nn.functional.upsample(input, size=(32,32), mode="bilinear", align_corners=True)
-        o = self.up(self.down(i))
+        i = nn.functional.upsample(input, size=(16,16), mode="bilinear", align_corners=True)
+        m = self.down(i)
+        o = self.up(m)
         o = nn.functional.upsample(o, size=size, mode="bilinear", align_corners=True)
         mean = o.view(512, -1).mean(dim=1)
         var = o.view(512, -1).var(dim=1) + 0.01
@@ -157,11 +158,11 @@ class Abstracter2(nn.Module):
         tmp = (o.view(512, -1) - mean) / std
         return tmp.view(1, 512, size[0], size[1])
     def forward(self, input):
-        size = input.size()[2:]
-        i = nn.functional.upsample(input, size=(32,32), mode="bilinear", align_corners=True)
+        #size = input.size()[2:]
+        i = nn.functional.upsample(input, size=(16,16), mode="bilinear", align_corners=True)
         o = self.up(self.down(i))
-        o = nn.functional.upsample(o, size=size, mode="bilinear", align_corners=True)
-        return input, o
+        #output = nn.functional.upsample(o, size=size, mode="bilinear", align_corners=True)
+        return i, o
 
     def save(self, path):
         state = self.state_dict()
