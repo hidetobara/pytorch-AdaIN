@@ -131,6 +131,8 @@ class Abstracter(nn.Module):
 class Abstracter2(nn.Module):
     def __init__(self):
         super(Abstracter2, self).__init__()
+        self.prepare = nn.Sequential(
+            nn.AdaptiveMaxPool2d( (16,16) ))
         self.down = nn.Sequential(
             nn.ReflectionPad2d((1, 1, 1, 1)),
             nn.Conv2d(512, 16, (3, 3)),
@@ -145,7 +147,7 @@ class Abstracter2(nn.Module):
 
     def execute(self, input):
         size = input.size()[2:]
-        i = nn.functional.upsample(input, size=(16,16), mode="bilinear", align_corners=True)
+        i = self.prepare(input)
         m = self.down(i)
         o = self.up(m)
         o = nn.functional.upsample(o, size=size, mode="bilinear", align_corners=True)
@@ -159,7 +161,7 @@ class Abstracter2(nn.Module):
         return tmp.view(1, 512, size[0], size[1])
     def forward(self, input):
         #size = input.size()[2:]
-        i = nn.functional.upsample(input, size=(16,16), mode="bilinear", align_corners=True)
+        i = self.prepare(input)
         o = self.up(self.down(i))
         #output = nn.functional.upsample(o, size=size, mode="bilinear", align_corners=True)
         return i, o
