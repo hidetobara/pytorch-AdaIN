@@ -154,11 +154,12 @@ class Abstracter2(nn.Module):
         mean = o.view(512, -1).mean(dim=1)
         var = o.view(512, -1).var(dim=1) + 0.01
         std = var.sqrt()
-        print("exe=", std)
-        mean = mean.view(512, 1).expand( (512, size[0]*size[1]) )
-        std = std.view(512, 1).expand( (512, size[0]*size[1]) )
-        tmp = (o.view(512, -1) - mean) / std
-        return tmp.view(1, 512, size[0], size[1])
+        print("exe=", mean)
+        return o.view(1, 512, size[0], size[1])
+        #mean = mean.view(512, 1).expand( (512, size[0]*size[1]) )
+        #std = std.view(512, 1).expand( (512, size[0]*size[1]) )
+        #tmp = (o.view(512, -1) - mean) / std
+        #return tmp.view(1, 512, size[0], size[1])
     def forward(self, input):
         #size = input.size()[2:]
         i = self.prepare(input)
