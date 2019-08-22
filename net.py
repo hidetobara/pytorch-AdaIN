@@ -132,18 +132,28 @@ class Abstracter2(nn.Module):
     def __init__(self):
         super(Abstracter2, self).__init__()
         self.prepare = nn.Sequential(
-            nn.AdaptiveMaxPool2d( (16,16) ))
+            nn.AdaptiveMaxPool2d( (32,32) ))
         self.down = nn.Sequential(
             nn.ReflectionPad2d((1, 1, 1, 1)),
-            nn.Conv2d(512, 16, (3, 3)),
+            nn.Conv2d(512, 128, (3, 3)),
             nn.LeakyReLU(),
-            nn.MaxPool2d((2, 2), (2, 2), (0, 0), ceil_mode=True))
+            nn.MaxPool2d((2, 2), (2, 2), (0, 0), ceil_mode=True),
+            nn.ReflectionPad2d((1, 1, 1, 1)),
+            nn.Conv2d(128, 32, (3, 3)),
+            nn.LeakyReLU(),
+            nn.MaxPool2d((2, 2), (2, 2), (0, 0), ceil_mode=True)
+            )
         self.up = nn.Sequential(
             #nn.Dropout(0.5),
-            nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
+            nn.Upsample(scale_factor=2, mode='nearest', align_corners=True),
             nn.ReflectionPad2d((1, 1, 1, 1)),
-            nn.Conv2d(16, 512, (3, 3)),
-            nn.ReLU())
+            nn.Conv2d(32, 128, (3, 3)),
+            nn.ReLU(),
+            nn.Upsample(scale_factor=2, mode='nearest', align_corners=True),
+            nn.ReflectionPad2d((1, 1, 1, 1)),
+            nn.Conv2d(128, 512, (3, 3)),
+            nn.ReLU()
+            )
 
     def execute(self, input):
         size = input.size()[2:]
@@ -154,7 +164,7 @@ class Abstracter2(nn.Module):
         mean = o.view(512, -1).mean(dim=1)
         var = o.view(512, -1).var(dim=1) + 0.01
         std = var.sqrt()
-        print("exe=", mean)
+        #print("exe=", mean)
         return o.view(1, 512, size[0], size[1])
         #mean = mean.view(512, 1).expand( (512, size[0]*size[1]) )
         #std = std.view(512, 1).expand( (512, size[0]*size[1]) )
