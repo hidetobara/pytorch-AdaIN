@@ -145,11 +145,11 @@ class Abstracter2(nn.Module):
             )
         self.up = nn.Sequential(
             #nn.Dropout(0.5),
-            nn.Upsample(scale_factor=2, mode='nearest', align_corners=True),
+            nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
             nn.ReflectionPad2d((1, 1, 1, 1)),
             nn.Conv2d(32, 128, (3, 3)),
             nn.ReLU(),
-            nn.Upsample(scale_factor=2, mode='nearest', align_corners=True),
+            nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
             nn.ReflectionPad2d((1, 1, 1, 1)),
             nn.Conv2d(128, 512, (3, 3)),
             nn.ReLU()

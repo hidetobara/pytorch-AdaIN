@@ -100,7 +100,7 @@ abstracter.train()
 abstracter.to(device)
 
 if not is_decoder_updating:
-    decoder.load_state_dict(torch.load('experiments/decoder.pth.tar'))
+    decoder.load_state_dict(torch.load('experiments/decoder_klmt.pth.tar'))
     print("decoder is loaded.")
 vgg.load_state_dict(torch.load(args.vgg))
 vgg = nn.Sequential(*list(vgg.children())[:31])
