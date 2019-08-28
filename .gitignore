@@ -2,6 +2,7 @@
 *.t7
 *.jpg
 *.tar
+*.out
 
 __pycache__
 .idea
