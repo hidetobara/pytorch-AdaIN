@@ -91,7 +91,8 @@ if not os.path.exists(args.log_dir):
     os.mkdir(args.log_dir)
 #writer = SummaryWriter(log_dir=args.log_dir)
 
-is_decoder_updating = False
+is_decoder_updating = True
+is_abstracter_updating = False
 
 decoder = net.decoder
 vgg = net.vgg
@@ -143,11 +144,12 @@ for i in tqdm(range(args.max_iter)):
         optimizer.step()
 
     # abstracter
-    _i, _o = abstracter(Variable(network.encode(style_images)))
-    loss_a = criterion_a(_o, _i)
-    optimizer_a.zero_grad()
-    loss_a.backward()
-    optimizer_a.step()
+    if is_abstracter_updating:
+        _i, _o = abstracter(Variable(network.encode(style_images)))
+        loss_a = criterion_a(_o, _i)
+        optimizer_a.zero_grad()
+        loss_a.backward()
+        optimizer_a.step()
 
     #writer.add_scalar('loss_content', loss_c.item(), i + 1)
     #writer.add_scalar('loss_style', loss_s.item(), i + 1)
@@ -159,6 +161,7 @@ for i in tqdm(range(args.max_iter)):
             for key in state_dict.keys():
                 state_dict[key] = state_dict[key].to(torch.device('cpu'))
             torch.save(state_dict, '{:s}/decoder_iter_{:d}.pth.tar'.format(args.save_dir, i + 1))
-        abstracter.save('{:s}/abstracter.pth.tar'.format(args.save_dir))
+        if is_abstracter_updating:
+            abstracter.save('{:s}/abstracter_{:d}.pth.tar'.format(args.save_dir, i + 1))
         
 #writer.close()
