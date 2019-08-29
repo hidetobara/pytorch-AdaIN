@@ -71,17 +71,17 @@ parser.add_argument('--log_dir', default='./logs',
 parser.add_argument('--lr', type=float, default=1e-4)
 parser.add_argument('--lr_decay', type=float, default=5e-5)
 parser.add_argument('--max_iter', type=int, default=160000)
-parser.add_argument('--batch_size', type=int, default=8) #  0.6GB / 1batch
+parser.add_argument('--batch_size', type=int, default=10) #  0.6GB / 1batch
 parser.add_argument('--style_weight', type=float, default=10.0)
 parser.add_argument('--content_weight', type=float, default=1.0)
 parser.add_argument('--n_threads', type=int, default=16)
 parser.add_argument('--save_model_interval', type=int, default=10000)
-parser.add_argument('--gpu', type=int, default=0)
+parser.add_argument('--gpu_device', type=int, default=0)
 args = parser.parse_args()
 
 if torch.cuda.is_available():
     device = 'cuda'
-    torch.cuda.set_device(args.gpu)
+    torch.cuda.set_device(args.gpu_device)
 else:
     device = 'cpu'
     print("ATTENSION: CPU mode.")
@@ -93,8 +93,8 @@ if not os.path.exists(args.log_dir):
     os.mkdir(args.log_dir)
 #writer = SummaryWriter(log_dir=args.log_dir)
 
-is_decoder_updating = True
-is_abstracter_updating = False
+is_decoder_updating = False
+is_abstracter_updating = True
 
 decoder = net.decoder
 vgg = net.vgg
@@ -103,7 +103,7 @@ abstracter.train()
 abstracter.to(device)
 
 if not is_decoder_updating:
-    decoder.load_state_dict(torch.load('experiments/decoder_klmt.pth.tar'))
+    decoder.load_state_dict(torch.load('models/decoder_azs.pth.tar'))
     print("decoder is loaded.")
 vgg.load_state_dict(torch.load(args.vgg))
 vgg = nn.Sequential(*list(vgg.children())[:31])
