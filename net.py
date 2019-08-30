@@ -135,11 +135,11 @@ class Abstracter2(nn.Module):
             nn.AdaptiveMaxPool2d( (32,32) ))
         self.down = nn.Sequential(
             nn.ReflectionPad2d((1, 1, 1, 1)),
-            nn.Conv2d(512, 64, (3, 3)),
+            nn.Conv2d(512, 128, (3, 3)),
             nn.LeakyReLU(),
             nn.MaxPool2d((2, 2), (2, 2), (0, 0), ceil_mode=True),
             nn.ReflectionPad2d((1, 1, 1, 1)),
-            nn.Conv2d(64, 8, (3, 3)),
+            nn.Conv2d(128, 32, (3, 3)),
             nn.LeakyReLU(),
             nn.MaxPool2d((2, 2), (2, 2), (0, 0), ceil_mode=True),
             )
@@ -147,11 +147,11 @@ class Abstracter2(nn.Module):
             #nn.Dropout(0.5),
             nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
             nn.ReflectionPad2d((1, 1, 1, 1)),
-            nn.Conv2d(8, 64, (3, 3)),
+            nn.Conv2d(32, 128, (3, 3)),
             nn.LeakyReLU(),
             nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
             nn.ReflectionPad2d((1, 1, 1, 1)),
-            nn.Conv2d(64, 512, (3, 3)),
+            nn.Conv2d(128, 512, (3, 3)),
             nn.ReLU()
             )
 
