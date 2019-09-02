@@ -93,7 +93,7 @@ if not os.path.exists(args.log_dir):
     os.mkdir(args.log_dir)
 #writer = SummaryWriter(log_dir=args.log_dir)
 
-is_decoder_updating = True
+is_decoder_updating = False
 is_abstracter_updating = True
 
 decoder = net.decoder

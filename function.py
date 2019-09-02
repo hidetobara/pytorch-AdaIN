@@ -29,6 +29,7 @@ def single_adaptive_instance_normalization(content_feat, style_feat):
     normalized_style = (style_feat - style_mean.expand(size)) / style_std.expand(size)
     content_mean, content_std = calc_mean_std(content_feat)
     normalized_content = (content_feat - content_mean.expand(size)) / content_std.expand(size)
+    #return style_feat
     #return normalized_content * normalized_style * style_std.expand(size) + style_mean.expand(size)
 
     # 本物に近いほど、分散が減るのではないか
@@ -40,7 +41,7 @@ def single_adaptive_instance_normalization(content_feat, style_feat):
     table_mean = table.mean(dim=0)
     table = torch.clamp(1 - (table - table_mean + table_std * 2) / (table_std * 4), min=0.1, max=1.1).view(N, 1, H, W)
     print("table=", table, table_mean, table_std)
-    return normalized_content * table * content_std.expand(size) + content_mean.expand(size)
+    return normalized_content * table * style_std.expand(size) + style_feat
     #return normalized_content * style_std.expand(size) + style_mean.expand(size)
 
 def _calc_feat_flatten_mean_std(feat):
