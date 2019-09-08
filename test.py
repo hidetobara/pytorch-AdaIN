@@ -74,14 +74,14 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Either --content or --contentDir should be given.
 assert (args.content or args.content_dir)
 # Either --style or --styleDir should be given.
-assert (args.style or args.style_dir)
+#assert (args.style or args.style_dir)
 
 if args.content:
     content_paths = [args.content]
 else:
     content_paths = [os.path.join(args.content_dir, f) for f in
                      os.listdir(args.content_dir)]
-
+"""
 if args.style:
     style_paths = args.style.split(',')
     if len(style_paths) == 1:
@@ -95,7 +95,7 @@ if args.style:
 else:
     style_paths = [os.path.join(args.style_dir, f) for f in
                    os.listdir(args.style_dir)]
-
+"""
 if not os.path.exists(args.output):
     os.mkdir(args.output)
 
@@ -122,8 +122,7 @@ style_tf = test_transform(args.style_size, args.crop)
 for content_path in content_paths:
     if do_interpolation:  # one content image, N style image
         style = torch.stack([style_tf(Image.open(p)) for p in style_paths])
-        content = content_tf(Image.open(content_path)) \
-            .unsqueeze(0).expand_as(style)
+        content = content_tf(Image.open(content_path)).unsqueeze(0).expand_as(style)
         style = style.to(device)
         content = content.to(device)
         with torch.no_grad():
@@ -135,12 +134,13 @@ for content_path in content_paths:
         save_image(output, output_name)
 
     else:  # process one content and one style
+        style_paths = ['default']
         for style_path in style_paths:
             content = content_tf(Image.open(content_path))
-            style = style_tf(Image.open(style_path))
-            if args.preserve_color:
-                style = coral(style, content)
-            style = style.to(device).unsqueeze(0)
+            #style = style_tf(Image.open(style_path))
+            style = None
+            #if args.preserve_color: style = coral(style, content)
+            #style = style.to(device).unsqueeze(0)
             content = content.to(device).unsqueeze(0)
             with torch.no_grad():
                 output = style_transfer(vgg, decoder, abstracter, content, style, args.alpha)
