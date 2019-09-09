@@ -11,6 +11,18 @@ def calc_mean_std(feat, eps=1e-5):
     feat_mean = feat.view(N, C, -1).mean(dim=2).view(N, C, 1, 1)
     return feat_mean, feat_std
 
+def calc_correct(content_feat, style_feat):
+    size = content_feat.size()
+    N, C, H, W = size
+
+    content_table = content_feat.transpose(1,3).transpose(1,2).view(-1, C)
+    style_table = style_feat.transpose(1,3).transpose(1,2).view(-1, C)
+    distance = torch.nn.PairwiseDistance()
+    table = distance(content_table, style_table).sqrt()
+    table_std = table.var(dim=0).sqrt()
+    table_mean = table.mean(dim=0)
+    table = torch.clamp(1 - (table - table_mean + table_std * 2) / (table_std * 4), min=0.1, max=1.1).view(N, 1, H, W)
+    print("table=", table, table_mean, table_std)
 
 def adaptive_instance_normalization(content_feat, style_feat):
     assert (content_feat.size()[:2] == style_feat.size()[:2])
@@ -31,18 +43,8 @@ def single_adaptive_instance_normalization(content_feat, style_feat):
     normalized_content = (content_feat - content_mean.expand(size)) / content_std.expand(size)
     #return style_feat
     #return normalized_content * normalized_style * style_std.expand(size) + style_mean.expand(size)
-
-    # 本物に近いほど、分散が減るのではないか
-    content_table = content_feat.transpose(1,3).transpose(1,2).view(-1, C)
-    style_table = style_feat.transpose(1,3).transpose(1,2).view(-1, C)
-    distance = torch.nn.PairwiseDistance()
-    table = distance(content_table, style_table).sqrt()
-    table_std = table.var(dim=0).sqrt()
-    table_mean = table.mean(dim=0)
-    table = torch.clamp(1 - (table - table_mean + table_std * 2) / (table_std * 4), min=0.1, max=1.1).view(N, 1, H, W)
-    print("table=", table, table_mean, table_std)
-    return normalized_content * table * style_std.expand(size) + style_feat
     #return normalized_content * style_std.expand(size) + style_mean.expand(size)
+    return normalized_content * style_std.expand(size) + style_feat
 
 def _calc_feat_flatten_mean_std(feat):
     # takes 3D feat (C, H, W), return mean and std of array within channels

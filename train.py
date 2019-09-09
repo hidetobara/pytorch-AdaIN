@@ -101,6 +101,9 @@ vgg = net.vgg
 abstracter = net.Abstracter2()
 abstracter.train()
 abstracter.to(device)
+corrector = net.Corrector()
+corrector.train()
+corrector.to(device)
 
 if not is_decoder_updating:
     decoder.load_state_dict(torch.load('models/decoder_azs.pth.tar'))
@@ -129,6 +132,8 @@ style_iter = iter(data.DataLoader(
 optimizer = torch.optim.Adam(network.decoder.parameters(), lr=args.lr)
 optimizer_a = torch.optim.Adam(abstracter.parameters())
 criterion_a = nn.MSELoss()
+optimizer_c = torch.optim.Adam(corrector.parameters())
+criterion_c = nn.CrossEntropyLoss()
 
 for i in tqdm(range(args.max_iter)):
     adjust_learning_rate(optimizer, iteration_count=i)
@@ -147,11 +152,21 @@ for i in tqdm(range(args.max_iter)):
 
     # abstracter
     if is_abstracter_updating:
-        _i, _o = abstracter(Variable(network.encode(style_images)))
+        _i, _o = abstracter(network.encode(style_images))
         loss_a = criterion_a(_o, _i)
         optimizer_a.zero_grad()
         loss_a.backward()
         optimizer_a.step()
+
+        N, C, H, W = sytles_images.size()
+        ones = torch.ones([M, H*W], dtype=torch.float64, device=device)
+        zeros = torch.zeros([M, H*W], dtype=torch.float64, device=device)
+        loss_c_1 = criterion_c(ones, corrector(style_images))        
+        loss_c_0 = criterion_c(zeros, corrector(content_images))
+        loss_c = loss_c_0 + loss_c_1
+        optimizer_c.zero_grad()
+        loss_c.backward()
+        optimizer_c.step()
 
     #writer.add_scalar('loss_content', loss_c.item(), i + 1)
     #writer.add_scalar('loss_style', loss_s.item(), i + 1)

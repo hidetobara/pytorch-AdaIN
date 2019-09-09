@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from function import adaptive_instance_normalization as adain
 from function import calc_mean_std
@@ -162,21 +163,41 @@ class Abstracter2(nn.Module):
         o = self.up(m)
         #print("exe=", i, m, o)
         o = nn.functional.upsample(o, size=size, mode="bilinear", align_corners=True)
-        #mean = o.view(512, -1).mean(dim=1)
-        #var = o.view(512, -1).var(dim=1) + 0.01
-        #std = var.sqrt()
-        #print("exe=", mean)
         return o.view(1, 512, size[0], size[1])
-        #mean = mean.view(512, 1).expand( (512, size[0]*size[1]) )
-        #std = std.view(512, 1).expand( (512, size[0]*size[1]) )
-        #tmp = (o.view(512, -1) - mean) / std
-        #return tmp.view(1, 512, size[0], size[1])
     def forward(self, input):
-        #size = input.size()[2:]
         i = self.prepare(input)
         o = self.up(self.down(i))
-        #output = nn.functional.upsample(o, size=size, mode="bilinear", align_corners=True)
         return i, o
+
+    def save(self, path):
+        state = self.state_dict()
+        for key in state.keys():
+            state[key] = state[key].to('cpu')
+        torch.save(state, path)
+    def load(self, path):
+        self.load_state_dict(torch.load(path))
+
+class Corrector(nn.Module):
+    def __init__(self):
+        self.down = nn.Sequential(
+            nn.ReflectionPad2d((1, 1, 1, 1)),
+            nn.Conv2d(512, 512, (3, 3)),
+            nn.ReLU())
+        self.correct = nn.Sequential(
+            nn.Linear(512, 32),
+            nn.Linear(32, 2))
+        self.cel = torch.nn.CrossEntropyLoss()
+    def execute(self, input):
+        size = input.size()
+        N, C, H, W = size
+        downed = self.down(input)
+        corrected = self.correct(downed.transpose(1,3).transpose(1,2).view(-1, C))
+        return F.cross_entropy(corrected, torch.ones( (N*H*W), dtype=torch.long )).view(N, 1, H, W)
+    def forward(self, input):
+        size = input.size()
+        N, C, H, W = size
+        downed = self.down(input)
+        return self.correct(downed.transpose(1,3).transpose(1,2).view(-1, C))
 
     def save(self, path):
         state = self.state_dict()
