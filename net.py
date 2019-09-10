@@ -146,11 +146,11 @@ class Abstracter2(nn.Module):
             )
         self.up = nn.Sequential(
             #nn.Dropout(0.5),
-            nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
+            nn.Upsample(scale_factor=2, mode='nearest'),
             nn.ReflectionPad2d((1, 1, 1, 1)),
             nn.Conv2d(32, 128, (3, 3)),
             nn.LeakyReLU(),
-            nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
+            nn.Upsample(scale_factor=2, mode='nearest'),
             nn.ReflectionPad2d((1, 1, 1, 1)),
             nn.Conv2d(128, 512, (3, 3)),
             nn.ReLU()
@@ -193,7 +193,9 @@ class Corrector(nn.Module):
         N, C, H, W = size
         downed = self.down(input)
         corrected = self.correct(downed.transpose(1,3).transpose(1,2).contiguous().view(-1, C))
-        return F.cross_entropy(corrected, torch.ones( (N*H*W), dtype=torch.long )).view(N, 1, H, W)
+        cross = F.softmax(corrected, dim=1)
+        #print(corrected, cross[:,1])
+        return cross[:,1].view(N, 1, H, W)
     def forward(self, input):
         size = input.size()
         N, C, H, W = size

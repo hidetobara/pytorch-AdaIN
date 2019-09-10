@@ -9,7 +9,7 @@ from torchvision import transforms
 from torchvision.utils import save_image
 
 import net
-from function import adaptive_instance_normalization, single_adaptive_instance_normalization
+from function import adaptive_instance_normalization, single_adaptive_instance_normalization, correct_adaptive_instance_normalization
 from function import coral
 
 
@@ -24,12 +24,12 @@ def test_transform(size, crop):
     return transform
 
 
-def style_transfer(vgg, decoder, abs, content, style, alpha=1.0,
-                   interpolation_weights=None):
+def style_transfer(vgg, decoder, abstracter, corrector, content, style, alpha=1.0, interpolation_weights=None):
     assert (0.0 <= alpha <= 1.0)
     content_f = vgg(content)
     #style_gen = vgg(style)
-    style_gen = abs.execute(content_f) # Attension content -> style
+    style_gen = abstracter.execute(content_f) # Attension content -> style
+    correct_f = corrector.execute(content_f)
     if interpolation_weights:
         _, C, H, W = content_f.size()
         feat = torch.FloatTensor(1, C, H, W).zero_().to(device)
@@ -38,7 +38,8 @@ def style_transfer(vgg, decoder, abs, content, style, alpha=1.0,
             feat = feat + w * base_feat[i:i + 1]
         content_f = content_f[0:1]
     else:
-        feat = single_adaptive_instance_normalization(content_f, style_gen)
+        #feat = single_adaptive_instance_normalization(content_f, style_gen)
+        feat = correct_adaptive_instance_normalization(content_f, style_gen, correct_f)
     feat = feat * alpha + content_f * (1 - alpha)
     return decoder(feat)
 
@@ -52,6 +53,7 @@ parser.add_argument('--style_dir', type=str, help='Directory path to a batch of 
 parser.add_argument('--vgg', type=str, default='models/vgg_normalised.pth')
 parser.add_argument('--decoder', type=str, required=True)
 parser.add_argument('--abstracter', type=str, required=True)
+parser.add_argument('--corrector', type=str, required=True)
 
 # Additional options
 parser.add_argument('--content_size', type=int, default=512, help='New (minimum) size for the content image, keeping the original size if set to 0')
@@ -102,19 +104,23 @@ if not os.path.exists(args.output):
 decoder = net.decoder
 vgg = net.vgg
 abstracter = net.Abstracter2()
+corrector = net.Corrector()
 
 decoder.eval()
 vgg.eval()
 abstracter.eval()
+corrector.eval()
 
 decoder.load_state_dict(torch.load(args.decoder))
 vgg.load_state_dict(torch.load(args.vgg))
 vgg = nn.Sequential(*list(vgg.children())[:31])
 abstracter.load(args.abstracter)
+corrector.load(args.corrector)
 
 vgg.to(device)
 decoder.to(device)
 abstracter.to(device)
+corrector.to(device)
 
 content_tf = test_transform(args.content_size, args.crop)
 style_tf = test_transform(args.style_size, args.crop)
@@ -143,7 +149,7 @@ for content_path in content_paths:
             #style = style.to(device).unsqueeze(0)
             content = content.to(device).unsqueeze(0)
             with torch.no_grad():
-                output = style_transfer(vgg, decoder, abstracter, content, style, args.alpha)
+                output = style_transfer(vgg, decoder, abstracter, corrector, content, style, args.alpha)
             output = output.cpu()
 
             output_name = '{:s}/{:s}_stylized_{:s}{:s}'.format(

@@ -46,6 +46,21 @@ def single_adaptive_instance_normalization(content_feat, style_feat):
     #return normalized_content * style_std.expand(size) + style_mean.expand(size)
     return normalized_content * style_std.expand(size) + style_feat
 
+def correct_adaptive_instance_normalization(content_feat, style_feat, correct_feat):
+    assert (content_feat.size()[:2] == style_feat.size()[:2])
+    size = content_feat.size()
+    N, C, H, W = size
+    style_mean, style_std = calc_mean_std(style_feat)
+    normalized_style = (style_feat - style_mean.expand(size)) / style_std.expand(size)
+    content_mean, content_std = calc_mean_std(content_feat)
+    normalized_content = (content_feat - content_mean.expand(size)) / content_std.expand(size)
+    print("cor=", correct_feat.view(H, W))
+    correct = correct_feat.expand(N, C, H, W)
+    #return style_feat
+    #return normalized_content * normalized_style * style_std.expand(size) + style_mean.expand(size)
+    #return normalized_content * style_std.expand(size) + style_mean.expand(size)
+    return normalized_content * correct * style_std.expand(size) + style_feat
+
 def _calc_feat_flatten_mean_std(feat):
     # takes 3D feat (C, H, W), return mean and std of array within channels
     assert (feat.size()[0] == 3)
