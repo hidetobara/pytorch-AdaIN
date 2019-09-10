@@ -179,6 +179,7 @@ class Abstracter2(nn.Module):
 
 class Corrector(nn.Module):
     def __init__(self):
+        super(Corrector, self).__init__()
         self.down = nn.Sequential(
             nn.ReflectionPad2d((1, 1, 1, 1)),
             nn.Conv2d(512, 512, (3, 3)),
@@ -191,13 +192,14 @@ class Corrector(nn.Module):
         size = input.size()
         N, C, H, W = size
         downed = self.down(input)
-        corrected = self.correct(downed.transpose(1,3).transpose(1,2).view(-1, C))
+        corrected = self.correct(downed.transpose(1,3).transpose(1,2).contiguous().view(-1, C))
         return F.cross_entropy(corrected, torch.ones( (N*H*W), dtype=torch.long )).view(N, 1, H, W)
     def forward(self, input):
         size = input.size()
         N, C, H, W = size
         downed = self.down(input)
-        return self.correct(downed.transpose(1,3).transpose(1,2).view(-1, C))
+        tr = downed.transpose(1,3).transpose(1,2).contiguous()
+        return self.correct(tr.view(N*H*W, C))
 
     def save(self, path):
         state = self.state_dict()

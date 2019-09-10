@@ -57,17 +57,12 @@ def adjust_learning_rate(optimizer, iteration_count):
 
 parser = argparse.ArgumentParser()
 # Basic options
-parser.add_argument('--content_dir', type=str, required=True,
-                    help='Directory path to a batch of content images')
-parser.add_argument('--style_dir', type=str, required=True,
-                    help='Directory path to a batch of style images')
+parser.add_argument('--content_dir', type=str, required=True, help='Directory path to a batch of content images')
+parser.add_argument('--style_dir', type=str, required=True, help='Directory path to a batch of style images')
 parser.add_argument('--vgg', type=str, default='models/vgg_normalised.pth')
-
 # training options
-parser.add_argument('--save_dir', default='./experiments',
-                    help='Directory to save the model')
-parser.add_argument('--log_dir', default='./logs',
-                    help='Directory to save the log')
+parser.add_argument('--save_dir', type=str, default='./experiments', help='Directory to save the model')
+parser.add_argument('--log_dir', type=str, default='./logs', help='Directory to save the log')
 parser.add_argument('--lr', type=float, default=1e-4)
 parser.add_argument('--lr_decay', type=float, default=5e-5)
 parser.add_argument('--max_iter', type=int, default=160000)
@@ -76,6 +71,7 @@ parser.add_argument('--style_weight', type=float, default=10.0)
 parser.add_argument('--content_weight', type=float, default=1.0)
 parser.add_argument('--n_threads', type=int, default=16)
 parser.add_argument('--save_model_interval', type=int, default=10000)
+parser.add_argument('--decoder', type=str, default=None)
 parser.add_argument('--gpu_device', type=int, default=0)
 args = parser.parse_args()
 
@@ -93,9 +89,6 @@ if not os.path.exists(args.log_dir):
     os.mkdir(args.log_dir)
 #writer = SummaryWriter(log_dir=args.log_dir)
 
-is_decoder_updating = False
-is_abstracter_updating = True
-
 decoder = net.decoder
 vgg = net.vgg
 abstracter = net.Abstracter2()
@@ -105,8 +98,12 @@ corrector = net.Corrector()
 corrector.train()
 corrector.to(device)
 
-if not is_decoder_updating:
-    decoder.load_state_dict(torch.load('models/decoder_azs.pth.tar'))
+is_decoder_updating = True
+is_abstracter_updating = True
+
+if args.decoder is not None and os.path.exists(args.decoder):
+    decoder.load_state_dict(torch.load(args.decoder))
+    is_decoder_updating = False
     print("decoder is loaded.")
 vgg.load_state_dict(torch.load(args.vgg))
 vgg = nn.Sequential(*list(vgg.children())[:31])
@@ -152,17 +149,19 @@ for i in tqdm(range(args.max_iter)):
 
     # abstracter
     if is_abstracter_updating:
-        _i, _o = abstracter(network.encode(style_images))
+        content_enc = network.encode(content_images)
+        style_enc = network.encode(style_images)
+        _i, _o = abstracter(style_enc)
         loss_a = criterion_a(_o, _i)
         optimizer_a.zero_grad()
         loss_a.backward()
         optimizer_a.step()
 
-        N, C, H, W = sytles_images.size()
-        ones = torch.ones([M, H*W], dtype=torch.float64, device=device)
-        zeros = torch.zeros([M, H*W], dtype=torch.float64, device=device)
-        loss_c_1 = criterion_c(ones, corrector(style_images))        
-        loss_c_0 = criterion_c(zeros, corrector(content_images))
+        N, C, H, W = style_enc.size()
+        ones = torch.ones([N*H*W], dtype=torch.long, device=device)
+        zeros = torch.zeros([N*H*W], dtype=torch.long, device=device)
+        loss_c_1 = criterion_c(corrector(style_enc), ones)        
+        loss_c_0 = criterion_c(corrector(content_enc), zeros)
         loss_c = loss_c_0 + loss_c_1
         optimizer_c.zero_grad()
         loss_c.backward()
@@ -180,5 +179,6 @@ for i in tqdm(range(args.max_iter)):
             torch.save(state_dict, '{:s}/decoder_iter_{:d}.pth.tar'.format(args.save_dir, i + 1))
         if is_abstracter_updating:
             abstracter.save('{:s}/abstracter_{:d}.pth.tar'.format(args.save_dir, i + 1))
+            corrector.save('{:s}/corrector_{:d}.pth.tar'.format(args.save_dir, i + 1))
         
 #writer.close()
