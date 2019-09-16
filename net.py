@@ -162,7 +162,8 @@ class Abstracter2(nn.Module):
         m = self.down(i)
         o = self.up(m)
         #print("exe=", i, m, o)
-        o = nn.functional.upsample(o, size=size, mode="bilinear", align_corners=True)
+        o = nn.functional.upsample(o, size=size, mode='bilinear', align_corners=True)
+        #o = nn.functional.upsample(o, size=size, mode='nearest')
         return o.view(1, 512, size[0], size[1])
     def forward(self, input):
         i = self.prepare(input)
@@ -193,7 +194,7 @@ class Corrector(nn.Module):
         N, C, H, W = size
         downed = self.down(input)
         corrected = self.correct(downed.transpose(1,3).transpose(1,2).contiguous().view(-1, C))
-        cross = F.softmax(corrected, dim=1)
+        cross = F.softmax(corrected * 0.2, dim=1)
         #print(corrected, cross[:,1])
         return cross[:,1].view(N, 1, H, W)
     def forward(self, input):
