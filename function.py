@@ -56,10 +56,9 @@ def correct_adaptive_instance_normalization(content_feat, style_feat, correct_fe
     normalized_content = (content_feat - content_mean.expand(size)) / content_std.expand(size)
     print("cor=", correct_feat.view(H, W))
     correct = correct_feat.expand(N, C, H, W)
-    #return style_feat
-    #return normalized_content * normalized_style * style_std.expand(size) + style_mean.expand(size)
-    #return normalized_content * style_std.expand(size) + style_mean.expand(size)
-    return normalized_content * (correct + 0.25) * style_std.expand(size) + style_feat
+    return (normalized_content + normalized_style * (1.0-correct)) * style_std.expand(size) + style_mean.expand(size)
+    #return normalized_content * style_std.expand(size) + style_feat * (1.2 - correct)
+    #return normalized_content * (correct + 0.25) * style_std.expand(size) + style_feat # better
 
 def _calc_feat_flatten_mean_std(feat):
     # takes 3D feat (C, H, W), return mean and std of array within channels

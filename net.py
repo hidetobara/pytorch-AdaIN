@@ -162,7 +162,7 @@ class Abstracter2(nn.Module):
         m = self.down(i)
         o = self.up(m)
         #print("exe=", i, m, o)
-        o = nn.functional.upsample(o, size=size, mode='bilinear', align_corners=True)
+        o = nn.functional.upsample(o, size=size, mode='bilinear', align_corners=True) # あやしい
         #o = nn.functional.upsample(o, size=size, mode='nearest')
         return o.view(1, 512, size[0], size[1])
     def forward(self, input):
