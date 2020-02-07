@@ -1,3 +1,8 @@
+
+# Eash train
+sudo docker run --gpus all -it --shm-size=4G -v /home/hideto.obara/pytorch-AdaIN/:/project neuro /bin/bash
+python3 train.py --content_dir input/content/ --style_dir input/style
+
 # pytorch-AdaIN
 
 This is an unofficial pytorch implementation of a paper, Arbitrary Style Transfer in Real-time with Adaptive Instance Normalization [Huang+, ICCV2017].
