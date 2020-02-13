@@ -1,7 +1,14 @@
 
-# Eash train
+# Easy train
+
+## nvidia docker
 sudo docker run --gpus all -it --shm-size=4G -v /home/hideto.obara/pytorch-AdaIN/:/project neuro /bin/bash
-python3 train.py --content_dir input/content/ --style_dir input/style
+## prepare decoder
+nohup python3 train.py --content_dir input/content/ --style_dir input/style > train.out
+## make abstracter,corrector
+nohup python3 train.py --content_dir input/content/ --style_dir input/style --decoder models/decoder_default.pth.tar > train.out
+## generate
+python3 test.py --content input/content/lenna.jpg --decoder models/decoder_default.pth.tar --abstracter models/abstracter_default.pth.tar --corrector models/corrector_default.pth.tar
 
 # pytorch-AdaIN
 
