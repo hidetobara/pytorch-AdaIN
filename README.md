@@ -1,6 +1,8 @@
 
 # Easy train
 
+## docker without gpu
+docker run -it --rm -v C:\obara\pytorch-AdaIN:/project docker040_neuro /bin/bash
 ## nvidia docker
 sudo docker run --gpus all -it --shm-size=4G -v /home/hideto.obara/pytorch-AdaIN/:/project neuro /bin/bash
 ## prepare decoder
@@ -9,6 +11,7 @@ nohup python3 train.py --content_dir input/content/ --style_dir input/style > tr
 nohup python3 train.py --content_dir input/content/ --style_dir input/style --decoder models/decoder_default.pth.tar > train.out
 ## generate
 python3 test.py --content input/content/lenna.jpg --decoder models/decoder_default.pth.tar --abstracter models/abstracter_default.pth.tar --corrector models/corrector_default.pth.tar
+python3 test.py --content input/content/lenna.jpg --decoder models/decoder_saya.pth.tar --abstracter models/abstracter_saya.pth.tar --corrector models/corrector_saya.pth.tar
 
 # pytorch-AdaIN
 
